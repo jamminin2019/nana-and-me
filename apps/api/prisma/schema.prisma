@@ -1,0 +1,173 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  PARENT
+  CAREGIVER
+  ADMIN
+}
+
+enum RecordingStatus {
+  DRAFT
+  UPLOADING
+  SUBMITTED
+  RENDERING
+  COMPLETED
+  FAILED
+}
+
+enum RenderStatus {
+  QUEUED
+  PROCESSING
+  DONE
+  ERROR
+}
+
+model User {
+  id        String   @id @default(cuid())
+  role      UserRole
+  email     String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  caregiverProfile CaregiverProfile?
+  auditLogs AuditLog[]
+}
+
+model Family {
+  id               String   @id @default(cuid())
+  ownerUserId      String
+  planTier         String
+  stripeCustomerId String?
+  createdAt        DateTime @default(now())
+  children         Child[]
+  invitations      Invitation[]
+  sessions         RecordingSession[]
+  episodes         Episode[]
+}
+
+model Child {
+  id              String   @id @default(cuid())
+  familyId        String
+  displayName     String
+  birthdayOptional DateTime?
+  createdAt       DateTime @default(now())
+  family          Family   @relation(fields: [familyId], references: [id])
+  sessions        RecordingSession[]
+  episodes        Episode[]
+}
+
+model CaregiverProfile {
+  id                String   @id @default(cuid())
+  userId             String   @unique
+  displayName        String
+  relationshipLabel  String
+  createdAt          DateTime @default(now())
+  user               User     @relation(fields: [userId], references: [id])
+  sessions           RecordingSession[]
+}
+
+model Invitation {
+  id           String   @id @default(cuid())
+  familyId     String
+  emailOrPhone String
+  role         String
+  status       String
+  token        String   @unique
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  family       Family   @relation(fields: [familyId], references: [id])
+}
+
+model Template {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  version   Int
+  stepsJson Json
+  createdAt DateTime @default(now())
+  assets    Asset[]
+  sessions  RecordingSession[]
+  episodes  Episode[]
+}
+
+model Asset {
+  id           String   @id @default(cuid())
+  templateId   String
+  type         String
+  key          String
+  url          String
+  metadataJson Json
+  createdAt    DateTime @default(now())
+  template     Template @relation(fields: [templateId], references: [id])
+}
+
+model RecordingSession {
+  id          String          @id @default(cuid())
+  familyId    String
+  childId     String
+  caregiverId String
+  templateId  String
+  status      RecordingStatus @default(DRAFT)
+  startedAt   DateTime        @default(now())
+  submittedAt DateTime?
+  family      Family          @relation(fields: [familyId], references: [id])
+  child       Child            @relation(fields: [childId], references: [id])
+  caregiver   CaregiverProfile @relation(fields: [caregiverId], references: [id])
+  template    Template         @relation(fields: [templateId], references: [id])
+  clips       RecordingClip[]
+  renderJobs  RenderJob[]
+}
+
+model RecordingClip {
+  id         String   @id @default(cuid())
+  sessionId  String
+  stepKey    String
+  storageKey String
+  durationMs Int
+  createdAt  DateTime @default(now())
+  session    RecordingSession @relation(fields: [sessionId], references: [id])
+}
+
+model RenderJob {
+  id         String       @id @default(cuid())
+  sessionId  String
+  status     RenderStatus @default(QUEUED)
+  progress   Int          @default(0)
+  outputKey  String?
+  logsJson   Json?
+  createdAt  DateTime     @default(now())
+  finishedAt DateTime?
+  session    RecordingSession @relation(fields: [sessionId], references: [id])
+}
+
+model Episode {
+  id                    String   @id @default(cuid())
+  familyId              String
+  childId               String
+  templateId            String
+  title                 String
+  outputKey             String
+  youtubeVideoIdOptional String?
+  visibilityOptional    String?
+  createdAt             DateTime @default(now())
+  family                Family   @relation(fields: [familyId], references: [id])
+  child                 Child    @relation(fields: [childId], references: [id])
+  template              Template @relation(fields: [templateId], references: [id])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String
+  action      String
+  entityType  String
+  entityId    String
+  metadataJson Json
+  createdAt   DateTime @default(now())
+  actor       User     @relation(fields: [actorUserId], references: [id])
+}
