@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "Nana & Me",
+    "slug": "nana-and-me",
+    "scheme": "nanaandme",
+    "plugins": ["expo-camera"],
+    "extra": {
+      "apiUrl": "http://localhost:4000"
+    }
+  }
+}

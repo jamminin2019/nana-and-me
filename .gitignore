@@ -1,14 +1,9 @@
-# dependencies
-node_modules/
-
-# environment files
+node_modules
+.pnpm-store
 .env
-*.env
-
-# build artifacts
-dist/
-build/
-
-# OS junk files
-.DS_Store
-Thumbs.db
+.env.*
+dist
+coverage
+.next
+.expo
+apps/api/prisma/dev.db
